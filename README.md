@@ -27,7 +27,7 @@ Full write-up, methodology, and results: [`paper/groundwater_paper.pdf`](paper/g
 ## Model architecture
 
 <p align="center">
-  <img src="https://i.postimg.cc/x89c1qq3/Untitled-Diagram-drawio-(1).png" width="100%">
+  <img src="https://i.postimg.cc/y6nNT1kr/Untitled-Diagram-drawio-(2).png" width="100%">
 </p>
 
 <p align="center"><em>Figure 1. End-to-end training and analysis pipeline.</em></p>
