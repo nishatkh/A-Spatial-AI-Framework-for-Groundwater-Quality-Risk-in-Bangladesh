@@ -24,6 +24,25 @@ Full write-up, methodology, and results: [`paper/groundwater_paper.pdf`](paper/g
 - **Working file:** `NationalSurveyData.csv`, accessed via the Kaggle dataset above.
 - The raw CSV is **not included** in this repository (check the Kaggle dataset's license before redistributing it yourself). Download it from the link above and place it at `data/NationalSurveyData.csv` to rerun the notebook.
 
+## Model architecture
+
+<p align="center">
+  <img src="https://i.postimg.cc/x89c1qq3/Untitled-Diagram-drawio-(1).png" width="100%">
+</p>
+
+<p align="center"><em>Figure 1. End-to-end training and analysis pipeline.</em></p>
+
+The pipeline runs left to right in five stages:
+
+1. **Data preparation.** The 1998–99 survey is cleaned and quality-checked (below-detection-limit values handled, duplicates removed, implausible coordinates and well depths set to missing), then turned into model-ready features.
+2. **Model training.** Two prediction setups are built: **Scenario A** (full chemistry + well details, explanatory) and **Scenario B** (location + well details, screening). Five models are compared for both classification (arsenic above 50 µg/L) and regression (log₁₀ arsenic): Random Forest, XGBoost, LightGBM, CatBoost, and a small MLP.
+3. **Validation.** Each model is scored under three schemes: a random split, a single spatial-block holdout, and eight repeated spatial-block holdouts. The repeated spatial mean ± SD is the headline result, since it shows how well a model transfers to geographically new areas.
+4. **Interpretation & uncertainty.** The best model is selected by mean repeated-spatial ROC-AUC. It is explained with **SHAP**, and its regression uncertainty is quantified with **conformalized quantile regression** (90% intervals).
+5. **Risk outputs.** Predictions are mapped as historical arsenic risk, followed by an exploratory multi-contaminant (As / Fe / Mn) analysis.
+
+> [!NOTE]
+> The pipeline describes a methodological study of a 1998–99 survey. Its outputs are historical and should not be used to judge the safety of any well today.
+
 ## Analysis notebook
 
 All calculations, models, figures, and numbers in the paper come from a single Jupyter notebook: [`notebooks/analysis.ipynb`](notebooks/analysis.ipynb). It runs top to bottom with a fixed random seed (`42`) and finds the survey CSV automatically (it looks in `/kaggle/input` first, then the working directory), so it works both on Kaggle and locally.
