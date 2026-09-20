@@ -24,6 +24,32 @@ Full write-up, methodology, and results: [`paper/groundwater_paper.pdf`](paper/g
 - **Working file:** `NationalSurveyData.csv`, accessed via the Kaggle dataset above.
 - The raw CSV is **not included** in this repository (check the Kaggle dataset's license before redistributing it yourself). Download it from the link above and place it at `data/NationalSurveyData.csv` to rerun the notebook.
 
+## Analysis notebook
+
+All calculations, models, figures, and numbers in the paper come from a single Jupyter notebook: [`notebooks/analysis.ipynb`](notebooks/analysis.ipynb). It runs top to bottom with a fixed random seed (`42`) and finds the survey CSV automatically (it looks in `/kaggle/input` first, then the working directory), so it works both on Kaggle and locally.
+
+### What the notebook does
+
+| Step | What happens |
+| ---- | ------------ |
+| **Load & clean** | Detects the header row, maps column names to a standard set (coordinates, well depth, install year, well type, location, and the measured chemistry variables), and reads units from the headers. Values reported as below detection limit (`<x`) are set to half the limit and flagged. Duplicates are dropped; coordinates outside Bangladesh, implausible well depths (≤ 0 or > 500 m), and install years outside 1930–1999 are set to missing. |
+| **Explore** | Well coverage map, distributions of As / Fe / Mn / F / NO₃-N / pH (log scale where skewed), element vs. depth plots, and an arsenic map. |
+| **Targets & guidelines** | Flags wells exceeding Bangladesh national guidelines (As 50 µg/L, Mn 0.1 mg/L, Fe 1.0 mg/L, F 1.0 mg/L, NO₃-N 10 mg/L) with WHO reference values alongside. Arsenic is the modelling target: classification (exceeds 50 µg/L) and regression (log₁₀ concentration). |
+| **Scenarios** | **Scenario A** uses water chemistry + well details (explanatory). **Scenario B** uses coordinates + well details + division/district only (screening, usable before sampling). |
+| **Spatial blocks** | Wells are grouped into a ~0.25° (~25 km) grid so that nearby wells are never split between training and testing. A sensitivity check repeats validation at half and double the block size. |
+| **Validation** | Compares a random 80/20 split, a single spatial-block holdout, and **8 repeated spatial-block holdouts**; the repeated spatial mean ± SD is the headline number. |
+| **Models** | Dummy, Logistic/Ridge baselines, Random Forest, XGBoost, LightGBM, CatBoost, and a small MLP (one hidden layer of 32 units). Tree models are tuned with randomized search (12 iterations) using spatially grouped cross-validation. |
+| **Metrics** | Classification: ROC-AUC, PR-AUC, F1, precision, recall, specificity (at a screening threshold set to the observed exceedance rate). Regression: MAE, RMSE, R², Spearman. |
+| **Explainability** | SHAP summary and dependence plots for the best classifier, plus a ranked list of mean absolute SHAP values. |
+| **Uncertainty** | 90% prediction intervals from conformalized quantile regression (CQR), compared against a bootstrap + residual baseline on the same held-out wells. |
+| **Multi-contaminant score** | Exploratory composite (As / Fe / Mn and any other eligible contaminant) built from per-contaminant Scenario B logistic models, with a calibration (Brier score) check. Labelled exploratory throughout. |
+| **Guideline sensitivity** | Re-scores the same arsenic model against the WHO (10 µg/L) and national (50 µg/L) thresholds, including how many held-out wells fall between the two. |
+| **Maps & summary** | Observed vs. out-of-fold predicted exceedance maps, composite-risk and interval-width maps, and a printed results summary. |
+
+### Notebook requirements
+
+`numpy`, `pandas`, `matplotlib`, `scipy`, `scikit-learn`, `xgboost`, `lightgbm`, `catboost`, `shap`, and `jupyter`. The XGBoost, LightGBM, CatBoost, and SHAP steps are skipped with a message if a library is missing, so the notebook still runs with a reduced set of models. Runtime is dominated by the hyperparameter search and the repeated spatial holdouts.
+
 ## Key results
 
 See the paper for full detail.
@@ -53,6 +79,8 @@ pip install -r requirements.txt
 # Download the dataset from Kaggle and place it at data/NationalSurveyData.csv
 jupyter notebook notebooks/analysis.ipynb
 ```
+
+Then run the notebook from top to bottom (**Run All**). It locates the CSV automatically, so no path needs editing. To run it on Kaggle instead, add the [dataset](https://www.kaggle.com/datasets/mdnahidurrahmankh/bangladesh-national-groundwater-hydrochemical) to a Kaggle notebook and upload `analysis.ipynb`.
 
 ## Citation
 
